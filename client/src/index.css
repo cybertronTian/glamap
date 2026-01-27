@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 330 15% 15%;
+  
+  /* Primary: Rose Gold/Pink */
+  --primary: 340 60% 65%;
+  --primary-foreground: 0 0% 100%;
+  
+  /* Secondary: Soft Neutral/Beige */
+  --secondary: 35 30% 96%;
+  --secondary-foreground: 330 15% 15%;
+  
+  /* Card: Solid white background */
+  --card: 0 0% 100%;
+  --card-foreground: 330 15% 15%;
+  
+  /* Popover: Solid white background */
+  --popover: 0 0% 100%;
+  --popover-foreground: 330 15% 15%;
+  
+  --muted: 330 10% 96%;
+  --muted-foreground: 330 10% 50%;
+  
+  --accent: 45 40% 90%;
+  --accent-foreground: 330 15% 15%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 330 10% 90%;
+  --input: 330 10% 90%;
+  --ring: 340 60% 65%;
+  
+  --radius: 0.75rem;
+
+  --font-display: 'Playfair Display', serif;
+  --font-sans: 'DM Sans', sans-serif;
+}
+
+.dark {
+  --background: 330 15% 10%;
+  --foreground: 35 30% 96%;
+  
+  --primary: 340 50% 60%;
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 330 15% 15%;
+  --secondary-foreground: 35 30% 96%;
+  
+  /* Card: Solid dark background */
+  --card: 330 15% 12%;
+  --card-foreground: 35 30% 96%;
+  
+  /* Popover: Solid dark background */
+  --popover: 330 15% 12%;
+  --popover-foreground: 35 30% 96%;
+  
+  --muted: 330 15% 20%;
+  --muted-foreground: 330 10% 60%;
+  
+  --accent: 330 15% 20%;
+  --accent-foreground: 35 30% 96%;
+  
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 0 0% 100%;
+  
+  --border: 330 15% 20%;
+  --input: 330 15% 20%;
+  --ring: 340 50% 60%;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight text-foreground;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/40;
+}
+
+/* Leaflet Map Customization */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-sans);
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  @apply rounded-xl shadow-lg border border-border/50 p-0 overflow-hidden;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0;
+  width: 280px !important;
+}
+
+.custom-popup .leaflet-popup-tip {
+  @apply bg-white dark:bg-zinc-900;
+}
+
+.custom-pink-marker {
+  background: transparent !important;
+  border: none !important;
+}
