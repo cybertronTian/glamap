@@ -6,12 +6,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient } from "@/lib/queryClient";
-import { Users, UserCheck, MessageSquare, MapPin, Trash2, ShieldCheck, Loader2, Eye } from "lucide-react";
+import { Users, UserCheck, MessageSquare, MapPin, Trash2, ShieldCheck, Loader2, Eye, Plus, Edit } from "lucide-react";
 import { Redirect } from "wouter";
+import { useState } from "react";
 import type { Profile } from "@shared/schema";
 
 interface AdminStats {
@@ -34,6 +40,19 @@ export default function Admin() {
   const { isAuthenticated, isLoading: authLoading, getToken } = useAuth();
   const { data: myProfile, isLoading: profileLoading } = useMyProfile();
   const { toast } = useToast();
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    username: "",
+    role: "provider" as "provider" | "client",
+    bio: "",
+    location: "",
+    locationType: "" as "" | "house" | "apartment" | "studio" | "rented_space" | "mobile",
+    latitude: -33.8688,
+    longitude: 151.2093,
+  });
 
   const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
@@ -95,6 +114,86 @@ export default function Admin() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  const createProfileMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const token = await getToken();
+      const res = await fetch(`/api/admin/profiles`, {
+        method: "POST",
+        headers: { 
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to create profile");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({ title: "Demo account created successfully" });
+      setIsCreateDialogOpen(false);
+      setFormData({
+        username: "",
+        role: "provider",
+        bio: "",
+        location: "",
+        locationType: "",
+        latitude: -33.8688,
+        longitude: 151.2093,
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<typeof formData> }) => {
+      const token = await getToken();
+      const res = await fetch(`/api/admin/profiles/${id}`, {
+        method: "PUT",
+        headers: { 
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update profile");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({ title: "Account updated successfully" });
+      setIsEditDialogOpen(false);
+      setEditingProfile(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleEdit = (profile: Profile) => {
+    setEditingProfile(profile);
+    setFormData({
+      username: profile.username,
+      role: profile.role as "provider" | "client",
+      bio: profile.bio || "",
+      location: profile.location || "",
+      locationType: (profile.locationType as any) || "",
+      latitude: profile.latitude || -33.8688,
+      longitude: profile.longitude || 151.2093,
+    });
+    setIsEditDialogOpen(true);
+  };
 
 
   if (authLoading || profileLoading) {
@@ -219,6 +318,87 @@ export default function Admin() {
           <TabsContent value="accounts" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">All Accounts</h2>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Demo Account
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Create Demo Account</DialogTitle>
+                    <DialogDescription>Add a new demo profile to showcase services</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="username">Username</Label>
+                      <Input
+                        id="username"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        placeholder="demo_artist"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="role">Role</Label>
+                      <Select value={formData.role} onValueChange={(value: any) => setFormData({ ...formData, role: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="provider">Provider</SelectItem>
+                          <SelectItem value="client">Client</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="bio">Bio</Label>
+                      <Textarea
+                        id="bio"
+                        value={formData.bio}
+                        onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                        placeholder="Professional makeup artist..."
+                        rows={3}
+                      />
+                    </div>
+                    {formData.role === "provider" && (
+                      <>
+                        <div>
+                          <Label htmlFor="location">Location</Label>
+                          <Input
+                            id="location"
+                            value={formData.location}
+                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                            placeholder="Sydney CBD, NSW"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="locationType">Location Type</Label>
+                          <Select value={formData.locationType} onValueChange={(value: any) => setFormData({ ...formData, locationType: value })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="house">House</SelectItem>
+                              <SelectItem value="apartment">Apartment</SelectItem>
+                              <SelectItem value="studio">Studio</SelectItem>
+                              <SelectItem value="rented_space">Rented Space</SelectItem>
+                              <SelectItem value="mobile">Mobile</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={() => createProfileMutation.mutate(formData)} disabled={!formData.username || createProfileMutation.isPending}>
+                      {createProfileMutation.isPending ? "Creating..." : "Create Account"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {profilesLoading ? (
@@ -257,12 +437,16 @@ export default function Admin() {
                       </div>
                       
                       {!profile.isAdmin && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive" data-testid={`button-delete-${profile.id}`}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(profile)} data-testid={`button-edit-${profile.id}`}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive" data-testid={`button-delete-${profile.id}`}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete Account</AlertDialogTitle>
@@ -282,10 +466,72 @@ export default function Admin() {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+                        </div>
                       )}
                     </div>
                   </Card>
                 ))}
+                
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Edit Account</DialogTitle>
+                      <DialogDescription>Update profile information</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="edit-username">Username</Label>
+                        <Input
+                          id="edit-username"
+                          value={formData.username}
+                          onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-bio">Bio</Label>
+                        <Textarea
+                          id="edit-bio"
+                          value={formData.bio}
+                          onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
+                      {formData.role === "provider" && (
+                        <>
+                          <div>
+                            <Label htmlFor="edit-location">Location</Label>
+                            <Input
+                              id="edit-location"
+                              value={formData.location}
+                              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-locationType">Location Type</Label>
+                            <Select value={formData.locationType} onValueChange={(value: any) => setFormData({ ...formData, locationType: value })}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="house">House</SelectItem>
+                                <SelectItem value="apartment">Apartment</SelectItem>
+                                <SelectItem value="studio">Studio</SelectItem>
+                                <SelectItem value="rented_space">Rented Space</SelectItem>
+                                <SelectItem value="mobile">Mobile</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+                      <Button onClick={() => editingProfile && updateProfileMutation.mutate({ id: editingProfile.id, data: formData })} disabled={updateProfileMutation.isPending}>
+                        {updateProfileMutation.isPending ? "Updating..." : "Update Account"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             )}
           </TabsContent>

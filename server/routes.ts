@@ -356,6 +356,69 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  app.post("/api/admin/profiles", isAuthenticated, isAdmin, async (req, res) => {
+    const { username, role, bio, location, locationType, latitude, longitude } = req.body;
+    
+    if (!username || !role) {
+      return res.status(400).json({ message: "Username and role are required" });
+    }
+    
+    // Check if username already exists
+    const existing = await storage.getProfileByUsername(username);
+    if (existing) {
+      return res.status(409).json({ message: "Username already taken" });
+    }
+    
+    // Create demo account with a dummy userId
+    const userId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const profile = await storage.createProfile({
+      userId,
+      username,
+      role,
+      bio: bio || null,
+      location: location || null,
+      locationType: locationType || null,
+      latitude: latitude || null,
+      longitude: longitude || null,
+    });
+    
+    res.status(201).json(profile);
+  });
+
+  app.put("/api/admin/profiles/:id", isAuthenticated, isAdmin, async (req, res) => {
+    const id = parseInt(req.params.id as string);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid profile ID" });
+    
+    const profile = await storage.getProfile(id);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    
+    // Prevent editing admin account
+    if (profile.isAdmin) {
+      return res.status(400).json({ message: "Cannot edit admin account" });
+    }
+    
+    const { username, bio, location, locationType, latitude, longitude } = req.body;
+    
+    // Check if username is being changed and if it's taken
+    if (username && username !== profile.username) {
+      const existing = await storage.getProfileByUsername(username);
+      if (existing) {
+        return res.status(409).json({ message: "Username already taken" });
+      }
+    }
+    
+    const updated = await storage.updateProfile(id, {
+      username: username || profile.username,
+      bio: bio !== undefined ? bio : profile.bio,
+      location: location !== undefined ? location : profile.location,
+      locationType: locationType !== undefined ? locationType : profile.locationType,
+      latitude: latitude !== undefined ? latitude : profile.latitude,
+      longitude: longitude !== undefined ? longitude : profile.longitude,
+    });
+    
+    res.json(updated);
+  });
+
   // Upload endpoint for profile images
   app.post("/api/uploads/request-url", isAuthenticated, async (req, res) => {
     try {
