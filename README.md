@@ -85,14 +85,25 @@ Delivered a fully functional, production-style web platform demonstrating modern
 
 ## Web App Preview
 
-**Homepage**
-![Glamap Homepage](client/public/explore-page.png)
-
-**Provider Profile**
-![Provider Profile](client/public/provider-profile.png)
-
-**Messaging Feature**
-![Messaging Feature](client/public/messaging-feature.png)
-
-**Edit Profile**
-![Edit Profile](client/public/edit-profile.png)
+<table>
+  <tr>
+    <td align="center">
+      <b>Homepage</b><br>
+      <img src="client/public/explore-page.png" alt="Glamap Homepage" width="300">
+    </td>
+    <td align="center">
+      <b>Provider Profile</b><br>
+      <img src="client/public/provider-profile.png" alt="Provider Profile" width="300">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <b>Messaging Feature</b><br>
+      <img src="client/public/messaging-feature.png" alt="Messaging Feature" width="300">
+    </td>
+    <td align="center">
+      <b>Edit Profile</b><br>
+      <img src="client/public/edit-profile.png" alt="Edit Profile" width="300">
+    </td>
+  </tr>
+</table>
