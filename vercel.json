@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://glamap.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
