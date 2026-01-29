@@ -168,12 +168,11 @@ export default function EditProfilePage() {
     const address = result.address;
     if (!address) return result.display_name;
 
-    const suburb = address.suburb || address.city_district || address.town || address.village || address.city || "";
-    const city = address.city || address.town || address.municipality || address.county || "";
+    const suburb = address.suburb || address.town || address.village || address.city || "";
     const state = address.state || "";
     const postcode = address.postcode || "";
 
-    const parts = [suburb, city, state, postcode].filter(Boolean);
+    const parts = [suburb, state, postcode].filter(Boolean);
     return parts.length > 0 ? parts.join(", ") : result.display_name;
   };
 
