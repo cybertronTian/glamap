@@ -357,7 +357,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/admin/profiles", isAuthenticated, isAdmin, async (req, res) => {
-    const { username, role, bio, location, locationType, latitude, longitude } = req.body;
+    const { username, role, bio, location, locationType, latitude, longitude, profileImageUrl } = req.body;
     
     if (!username || !role) {
       return res.status(400).json({ message: "Username and role are required" });
@@ -380,6 +380,7 @@ export async function registerRoutes(
       locationType: locationType || null,
       latitude: latitude || null,
       longitude: longitude || null,
+      profileImageUrl: profileImageUrl || null,
     });
     
     res.status(201).json(profile);
@@ -397,7 +398,7 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Cannot edit admin account" });
     }
     
-    const { username, bio, location, locationType, latitude, longitude } = req.body;
+    const { username, bio, location, locationType, latitude, longitude, profileImageUrl } = req.body;
     
     // Check if username is being changed and if it's taken
     if (username && username !== profile.username) {
@@ -414,6 +415,7 @@ export async function registerRoutes(
       locationType: locationType !== undefined ? locationType : profile.locationType,
       latitude: latitude !== undefined ? latitude : profile.latitude,
       longitude: longitude !== undefined ? longitude : profile.longitude,
+      profileImageUrl: profileImageUrl !== undefined ? profileImageUrl : profile.profileImageUrl,
     });
     
     res.json(updated);

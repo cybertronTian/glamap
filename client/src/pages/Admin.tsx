@@ -14,10 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
+import { useUpload } from "@/hooks/use-upload";
 import { queryClient } from "@/lib/queryClient";
-import { Users, UserCheck, MessageSquare, MapPin, Trash2, ShieldCheck, Loader2, Eye, Plus, Edit } from "lucide-react";
+import { Users, UserCheck, MessageSquare, MapPin, Trash2, ShieldCheck, Loader2, Eye, Plus, Edit, Camera, X } from "lucide-react";
 import { Redirect } from "wouter";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { Profile } from "@shared/schema";
 
 interface AdminStats {
@@ -36,6 +37,23 @@ const locationTypeLabels: Record<string, string> = {
   mobile: "Mobile",
 };
 
+interface LocationResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    suburb?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    city_district?: string;
+    municipality?: string;
+    county?: string;
+    state?: string;
+    postcode?: string;
+  };
+}
+
 export default function Admin() {
   const { isAuthenticated, isLoading: authLoading, getToken } = useAuth();
   const { data: myProfile, isLoading: profileLoading } = useMyProfile();
@@ -52,6 +70,25 @@ export default function Admin() {
     locationType: "" as "" | "house" | "apartment" | "studio" | "rented_space" | "mobile",
     latitude: -33.8688,
     longitude: 151.2093,
+    profileImageUrl: null as string | null,
+  });
+
+  const [locationSearch, setLocationSearch] = useState("");
+  const [locationResults, setLocationResults] = useState<LocationResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [locationSelected, setLocationSelected] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { uploadFile, isUploading } = useUpload({
+    onSuccess: (response) => {
+      setFormData({ ...formData, profileImageUrl: response.objectPath });
+      toast({ title: "Photo uploaded" });
+    },
+    onError: (error) => {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    },
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
@@ -145,7 +182,10 @@ export default function Admin() {
         locationType: "",
         latitude: -33.8688,
         longitude: 151.2093,
+        profileImageUrl: null,
       });
+      setLocationSearch("");
+      setLocationSelected(false);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -181,6 +221,71 @@ export default function Admin() {
     },
   });
 
+  const searchLocation = async (query: string) => {
+    if (query.length < 3) {
+      setLocationResults([]);
+      setShowResults(false);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(query)}&countrycodes=au&limit=5`,
+        { headers: { 'Accept': 'application/json' } }
+      );
+      const data = await response.json();
+      setLocationResults(data);
+      setShowResults(true);
+    } catch (error) {
+      console.error("Location search error:", error);
+      setLocationResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleLocationSearchChange = (value: string) => {
+    setLocationSearch(value);
+    setFormData({ ...formData, location: value });
+    setLocationSelected(false);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => searchLocation(value), 500);
+  };
+
+  const selectLocation = (result: LocationResult) => {
+    const formatted = formatLocation(result);
+    setFormData({ ...formData, location: formatted, latitude: parseFloat(result.lat), longitude: parseFloat(result.lon) });
+    setLocationSearch(formatted);
+    setLocationSelected(true);
+    setShowResults(false);
+    setLocationResults([]);
+  };
+
+  const formatLocation = (result: LocationResult) => {
+    const address = result.address;
+    if (!address) return result.display_name;
+    const suburb = address.suburb || address.town || address.village || address.city || "";
+    const state = address.state || "";
+    const postcode = address.postcode || "";
+    const parts = [suburb, state, postcode].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : result.display_name;
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Maximum 5MB", variant: "destructive" });
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast({ title: "Invalid file", description: "Please select an image", variant: "destructive" });
+        return;
+      }
+      await uploadFile(file);
+    }
+  };
+
   const handleEdit = (profile: Profile) => {
     setEditingProfile(profile);
     setFormData({
@@ -191,7 +296,10 @@ export default function Admin() {
       locationType: (profile.locationType as any) || "",
       latitude: profile.latitude || -33.8688,
       longitude: profile.longitude || 151.2093,
+      profileImageUrl: profile.profileImageUrl || null,
     });
+    setLocationSearch(profile.location || "");
+    setLocationSelected(Boolean(profile.latitude && profile.longitude));
     setIsEditDialogOpen(true);
   };
 
@@ -473,12 +581,53 @@ export default function Admin() {
                 ))}
                 
                 <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                  <DialogContent className="max-w-md">
+                  <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Edit Account</DialogTitle>
                       <DialogDescription>Update profile information</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
+                      <div>
+                        <Label>Profile Picture</Label>
+                        <div className="flex items-center gap-4 mt-2">
+                          <div className="relative w-20 h-20 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                            {formData.profileImageUrl ? (
+                              <img src={formData.profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-2xl font-bold">{formData.username[0]?.toUpperCase() || "?"}</span>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleFileSelect}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={isUploading}
+                            >
+                              <Camera className="h-4 w-4 mr-2" />
+                              {isUploading ? "Uploading..." : "Upload Photo"}
+                            </Button>
+                            {formData.profileImageUrl && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setFormData({ ...formData, profileImageUrl: null })}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                       <div>
                         <Label htmlFor="edit-username">Username</Label>
                         <Input
@@ -498,13 +647,36 @@ export default function Admin() {
                       </div>
                       {formData.role === "provider" && (
                         <>
-                          <div>
+                          <div className="relative">
                             <Label htmlFor="edit-location">Location</Label>
                             <Input
                               id="edit-location"
-                              value={formData.location}
-                              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                              value={locationSearch}
+                              onChange={(e) => handleLocationSearchChange(e.target.value)}
+                              placeholder="Search for a location..."
                             />
+                            {isSearching && (
+                              <div className="absolute right-3 top-9">
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                              </div>
+                            )}
+                            {showResults && locationResults.length > 0 && (
+                              <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                {locationResults.map((result, index) => (
+                                  <button
+                                    key={index}
+                                    type="button"
+                                    className="w-full text-left px-4 py-3 hover:bg-muted transition-colors flex items-start gap-3"
+                                    onClick={() => selectLocation(result)}
+                                  >
+                                    <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-sm truncate">{result.display_name}</div>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div>
                             <Label htmlFor="edit-locationType">Location Type</Label>
