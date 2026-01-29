@@ -139,7 +139,7 @@ export default function HomePage() {
       }
     });
     
-    // Then add locations from comprehensive database (suburbs and postcodes)
+    // Then add locations from comprehensive database (suburbs only)
     const locationResults = searchLocations(searchTerm, 10);
     locationResults.forEach(loc => {
       // Add as location (suburb)
@@ -151,19 +151,6 @@ export default function HomePage() {
           value: loc.suburb, 
           display: loc.display
         });
-      }
-      
-      // Add postcode if searching by number
-      if (/^\d+$/.test(searchTerm)) {
-        const postcodeKey = `postcode-${loc.postcode}`;
-        if (!seenValues.has(postcodeKey)) {
-          seenValues.add(postcodeKey);
-          results.push({ 
-            type: 'postcode', 
-            value: loc.postcode, 
-            display: `${loc.postcode} - ${loc.suburb}` 
-          });
-        }
       }
     });
     
