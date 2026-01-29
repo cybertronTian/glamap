@@ -114,7 +114,9 @@ export function Navigation() {
       <div className="container mx-auto px-4 h-20 flex items-center">
         {/* Left - Logo */}
         <div className="flex-1 flex items-center justify-start">
-          <img src={glamapLogo} alt="Glamap" className="h-24" />
+          <Link href="/" className="inline-flex items-center" aria-label="Go to home" data-testid="link-home-logo">
+            <img src={glamapLogo} alt="Glamap" className="h-24" />
+          </Link>
         </div>
         
         {/* Center - Explore */}

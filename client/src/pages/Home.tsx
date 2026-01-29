@@ -182,13 +182,13 @@ export default function HomePage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-background">
       <Navigation />
       
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      <main className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
         {/* Left Sidebar - List View */}
         <div 
-          className={`flex flex-col border-r border-border bg-card/50 backdrop-blur-sm z-10 shadow-2xl relative ${mobileView === 'map' ? 'hidden md:flex' : 'flex'} md:flex`}
+          className={`flex flex-col min-h-0 border-r border-border bg-card/50 backdrop-blur-sm z-10 shadow-2xl relative ${mobileView === 'map' ? 'hidden md:flex' : 'flex'} md:flex`}
           style={{ width: typeof window !== 'undefined' && window.innerWidth >= 768 ? directoryWidth : '100%' }}
         >
           {/* Resize Handle */}
@@ -344,7 +344,7 @@ export default function HomePage() {
           </div>
 
           {/* Results List */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 pb-24 md:pb-6">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 space-y-4 sm:space-y-6 pb-24 md:pb-6">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                 <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
