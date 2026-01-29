@@ -234,7 +234,17 @@ export default function Admin() {
         { headers: { 'Accept': 'application/json' } }
       );
       const data = await response.json();
-      setLocationResults(data);
+      
+      // Deduplicate results based on formatted location
+      const seen = new Set<string>();
+      const uniqueResults = data.filter((result: LocationResult) => {
+        const formatted = formatLocation(result);
+        if (seen.has(formatted)) return false;
+        seen.add(formatted);
+        return true;
+      });
+      
+      setLocationResults(uniqueResults);
       setShowResults(true);
     } catch (error) {
       console.error("Location search error:", error);
