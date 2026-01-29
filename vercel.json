@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://YOUR_BACKEND_DOMAIN/api/:path*"
+      "destination": "https://glamap.onrender.com/api/:path*"
     }
   ]
 }
