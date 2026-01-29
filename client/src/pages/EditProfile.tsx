@@ -18,6 +18,17 @@ interface LocationResult {
   display_name: string;
   lat: string;
   lon: string;
+  address?: {
+    suburb?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    city_district?: string;
+    municipality?: string;
+    county?: string;
+    state?: string;
+    postcode?: string;
+  };
 }
 
 export default function EditProfilePage() {
@@ -41,6 +52,7 @@ export default function EditProfilePage() {
   const [locationResults, setLocationResults] = useState<LocationResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [locationSelected, setLocationSelected] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [newServiceOpen, setNewServiceOpen] = useState(false);
@@ -71,6 +83,7 @@ export default function EditProfilePage() {
       setInstagram(profile.instagram || "");
       setLatitude(profile.latitude || -33.8688);
       setLongitude(profile.longitude || 151.2093);
+      setLocationSelected(Boolean(profile.latitude && profile.longitude));
       setProfileImageUrl(profile.profileImageUrl || null);
     }
   }, [profile]);
@@ -108,7 +121,7 @@ export default function EditProfilePage() {
     setIsSearching(true);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=au&limit=5`,
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(query)}&countrycodes=au&limit=5`,
         {
           headers: {
             'Accept': 'application/json',
@@ -129,6 +142,7 @@ export default function EditProfilePage() {
   const handleLocationSearchChange = (value: string) => {
     setLocationSearch(value);
     setLocationValue(value);
+    setLocationSelected(false);
     
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -140,12 +154,27 @@ export default function EditProfilePage() {
   };
 
   const selectLocation = (result: LocationResult) => {
-    setLocationValue(result.display_name);
-    setLocationSearch(result.display_name);
+    const formatted = formatLocation(result);
+    setLocationValue(formatted);
+    setLocationSearch(formatted);
     setLatitude(parseFloat(result.lat));
     setLongitude(parseFloat(result.lon));
+    setLocationSelected(true);
     setShowResults(false);
     setLocationResults([]);
+  };
+
+  const formatLocation = (result: LocationResult) => {
+    const address = result.address;
+    if (!address) return result.display_name;
+
+    const suburb = address.suburb || address.city_district || address.town || address.village || address.city || "";
+    const city = address.city || address.town || address.municipality || address.county || "";
+    const state = address.state || "";
+    const postcode = address.postcode || "";
+
+    const parts = [suburb, city, state, postcode].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : result.display_name;
   };
 
   if (isLoading) {
@@ -166,6 +195,14 @@ export default function EditProfilePage() {
   }
 
   const handleSaveProfile = async () => {
+    if (locationType !== "mobile" && location && !locationSelected) {
+      toast({
+        title: "Select a suggested location",
+        description: "Choose a location from the dropdown so the map pin is accurate.",
+        variant: "destructive",
+      });
+      return;
+    }
     updateProfile.mutate(
       { bio, location: location, locationType: locationType || null, instagram, latitude, longitude, profileImageUrl },
       {
@@ -433,7 +470,7 @@ export default function EditProfilePage() {
                         >
                           <div className="flex items-start gap-2">
                             <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                            <span className="line-clamp-2">{result.display_name}</span>
+                            <span className="line-clamp-2">{formatLocation(result)}</span>
                           </div>
                         </button>
                       ))}
