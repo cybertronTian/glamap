@@ -35,7 +35,7 @@ const HighlightedPinkIcon = L.divIcon({
 });
 
 // Helper to update map center when props change
-function MapController({ center, zoom }: { center: [number, number]; zoom: number }) {
+function MapController({ center, zoom, isVisible }: { center: [number, number]; zoom: number; isVisible?: boolean }) {
   const map = useMap();
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -47,6 +47,18 @@ function MapController({ center, zoom }: { center: [number, number]; zoom: numbe
     }, 200);
     return () => clearTimeout(timeout);
   }, [map]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const timeout = setTimeout(() => {
+      try {
+        map.invalidateSize();
+      } catch (err) {
+        console.error("Map invalidate error:", err);
+      }
+    }, 120);
+    return () => clearTimeout(timeout);
+  }, [isVisible, map]);
 
   useEffect(() => {
     try {
@@ -69,9 +81,10 @@ interface MapProps {
   hoveredProfileId?: number | null;
   center?: [number, number];
   zoom?: number;
+  isVisible?: boolean;
 }
 
-export default function Map({ profiles, selectedId, hoveredProfileId, center = [-33.8688, 151.2093], zoom = 12 }: MapProps) {
+export default function Map({ profiles, selectedId, hoveredProfileId, center = [-33.8688, 151.2093], zoom = 12, isVisible = true }: MapProps) {
   // Filter out mobile providers and profiles with invalid coordinates
   // Only show providers who have a fixed location on the map
   const validProfiles = profiles.filter(
@@ -106,7 +119,7 @@ export default function Map({ profiles, selectedId, hoveredProfileId, center = [
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
-        <MapController center={validCenter} zoom={zoom} />
+        <MapController center={validCenter} zoom={zoom} isVisible={isVisible} />
         
         {validProfiles.map((profile) => (
           <Marker 

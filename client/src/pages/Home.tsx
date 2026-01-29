@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CATEGORIES = [
   "All",
@@ -47,6 +48,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function HomePage() {
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedLocationTypes, setSelectedLocationTypes] = useState<string[]>([]);
@@ -446,6 +448,7 @@ export default function HomePage() {
             profiles={profiles || []} 
             center={userLocation}
             hoveredProfileId={hoveredProfileId}
+            isVisible={!isMobile || mobileView === 'map'}
           />
         </div>
         
