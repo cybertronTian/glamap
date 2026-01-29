@@ -137,7 +137,6 @@ export default function ProfilePage() {
                   {profile.username[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute bottom-3 sm:bottom-4 right-0 bg-green-500 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-4 border-card" />
             </div>
             
             <h1 className="font-display text-2xl sm:text-3xl font-bold mb-1">{profile.username}</h1>

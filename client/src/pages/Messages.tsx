@@ -53,7 +53,7 @@ export default function MessagesPage() {
   }, [messages, myProfileId]);
 
   // Fetch profiles for all conversation partners
-  const { data: profiles } = useQuery({
+  const { data: profiles, isLoading: profilesLoading } = useQuery({
     queryKey: ['/api/profiles/batch', otherUserIds],
     queryFn: async () => {
       const results: Record<number, Profile> = {};
@@ -82,7 +82,7 @@ export default function MessagesPage() {
     if (!acc[otherId]) {
       acc[otherId] = {
         userId: otherId,
-        name: profile?.username || `User ${otherId}`,
+        name: profile?.username || (profilesLoading ? "Loading..." : "Unknown"),
         lastMessage: msg,
         messages: []
       };
