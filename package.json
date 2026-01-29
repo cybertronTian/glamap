@@ -11,9 +11,8 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@clerk/backend": "^2.29.5",
+    "@clerk/backend": "0.38.15",
     "@clerk/clerk-react": "^4.30.3",
-    "@clerk/clerk-sdk-node": "^4.13.23",
     "@google-cloud/storage": "^7.18.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
@@ -88,7 +87,6 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
-    "@tailwindcss/vite": "^4.1.18",
     "@types/express": "^5.0.0",
     "@types/express-session": "^1.18.2",
     "@types/node": "20.19.27",

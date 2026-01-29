@@ -1,8 +1,9 @@
-import { verifyToken } from '@clerk/backend';
+import { verifyToken } from "@clerk/backend";
 import type { Express, RequestHandler } from "express";
 import { authStorage } from "./storage";
 
 const SECRET_KEY = process.env.CLERK_SECRET_KEY!;
+const JWT_ISSUER = process.env.CLERK_JWT_ISSUER || null;
 
 export function getSession() {
   // Clerk handles sessions via JWT tokens, no need for express-session
@@ -27,7 +28,7 @@ export async function setupAuth(app: Express) {
 
     if (token) {
       try {
-        const payload = await verifyToken(token, { secretKey: SECRET_KEY });
+        const payload = await verifyToken(token, { secretKey: SECRET_KEY, issuer: JWT_ISSUER });
         req.user = payload;
 
         // Sync user data from JWT payload
@@ -55,7 +56,7 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
 
 export async function getUserFromToken(token: string) {
   try {
-    return await verifyToken(token, { secretKey: SECRET_KEY });
+    return await verifyToken(token, { secretKey: SECRET_KEY, issuer: JWT_ISSUER });
   } catch {
     return null;
   }
