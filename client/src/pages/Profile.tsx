@@ -26,15 +26,15 @@ const reviewFormSchema = insertReviewSchema.omit({ clientId: true, providerId: t
 type ReviewFormValues = z.infer<typeof reviewFormSchema>;
 
 export default function ProfilePage() {
-  const [match, params] = useRoute("/profile/:id");
-  const id = params?.id ? parseInt(params.id) : 0;
+  const [match, params] = useRoute("/profile/:username");
+  const username = params?.username || "";
   
-  const { data: profile, isLoading } = useProfile(id);
+  const { data: profile, isLoading } = useProfile(username);
   const { data: myProfile } = useMyProfile();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   
-  const isOwnProfile = myProfile?.id === id;
+  const isOwnProfile = myProfile?.id === profile?.id;
   
   const sendMessage = useSendMessage();
   const createReview = useCreateReview();

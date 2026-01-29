@@ -63,7 +63,7 @@ function Router() {
       <main className="flex-grow">
         <Switch>
           <Route path="/" component={Home} />
-          <Route path="/profile/:id" component={ProfilePage} />
+          <Route path="/profile/:username" component={ProfilePage} />
           <Route path="/onboarding">
             {() => !isAuthenticated ? <Home /> : <Onboarding />} 
           </Route>

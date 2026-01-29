@@ -17,12 +17,23 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Notification } from "@shared/schema";
 import { api } from "@shared/routes";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect, useState } from "react";
 
 export function Navigation() {
   const [location, setLocation] = useLocation();
   const { user, logout, isAuthenticated, getToken, isLoading } = useAuth();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
   const queryClient = useQueryClient();
+  const [authTimeout, setAuthTimeout] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setAuthTimeout(false);
+      return;
+    }
+    const timeout = setTimeout(() => setAuthTimeout(true), 3500);
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: [api.notifications.list.path],
@@ -115,7 +126,7 @@ export function Navigation() {
 
         {/* Right - Messages, Notifications, Profile */}
         <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3">
-          {isLoading ? (
+          {isLoading && !authTimeout ? (
             <div className="h-11 w-28 rounded-full bg-muted/50 animate-pulse" aria-hidden="true" />
           ) : !isAuthenticated ? (
             <div className="flex items-center gap-2 sm:gap-3">
@@ -226,7 +237,7 @@ export function Navigation() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href={profile ? `/profile/${profile.id}` : "/onboarding"} className="cursor-pointer">
+                    <Link href={profile ? `/profile/${profile.username}` : "/onboarding"} className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       <span>My Profile</span>
                     </Link>

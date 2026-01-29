@@ -45,6 +45,14 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    getByUsername: {
+      method: 'GET' as const,
+      path: '/api/profiles/username/:username',
+      responses: {
+        200: z.custom<typeof profiles.$inferSelect & { services: typeof services.$inferSelect[], reviews: typeof reviews.$inferSelect[] }>(),
+        404: errorSchemas.notFound,
+      },
+    },
     me: {
       method: 'GET' as const,
       path: '/api/profiles/me',

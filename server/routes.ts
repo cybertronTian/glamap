@@ -112,6 +112,17 @@ export async function registerRoutes(
       res.json(updated);
   });
 
+  app.get(api.profiles.getByUsername.path, async (req, res) => {
+    const username = String(req.params.username);
+    const profile = await storage.getProfileByUsername(username);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const services = await storage.getServicesByProvider(profile.id);
+    const reviews = await storage.getReviewsByProvider(profile.id);
+
+    res.json({ ...profile, services, reviews });
+  });
+
   app.get(api.profiles.get.path, async (req, res) => {
     const profile = await storage.getProfile(Number(req.params.id));
     if (!profile) return res.status(404).json({ message: "Profile not found" });

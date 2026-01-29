@@ -378,7 +378,7 @@ export default function HomePage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.05 }}
                     >
-                      <Link href={`/profile/${profile.id}`}>
+                      <Link href={`/profile/${profile.username}`}>
                         <div 
                           className="group cursor-pointer bg-card hover:bg-card/80 border border-border/50 hover:border-primary/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 transition-all hover:shadow-lg hover:-translate-y-1"
                           onMouseEnter={() => setHoveredProfileId(profile.id)}

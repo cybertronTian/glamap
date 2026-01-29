@@ -29,17 +29,17 @@ export function useProfiles(filters?: { services?: string[]; locationTypes?: str
   });
 }
 
-export function useProfile(id: number) {
+export function useProfile(username?: string) {
   return useQuery({
-    queryKey: [api.profiles.get.path, id],
+    queryKey: [api.profiles.getByUsername.path, username],
     queryFn: async () => {
-      const url = buildUrl(api.profiles.get.path, { id });
+      const url = buildUrl(api.profiles.getByUsername.path, { username: username as string });
       const res = await fetch(url, { credentials: "include" });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error("Failed to fetch profile");
-      return api.profiles.get.responses[200].parse(await res.json());
+      return api.profiles.getByUsername.responses[200].parse(await res.json());
     },
-    enabled: !!id,
+    enabled: !!username,
   });
 }
 
@@ -128,6 +128,7 @@ export function useUpdateProfile() {
       queryClient.invalidateQueries({ queryKey: [api.profiles.me.path] });
       queryClient.invalidateQueries({ queryKey: [api.profiles.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.profiles.get.path, data.id] });
+      queryClient.invalidateQueries({ queryKey: [api.profiles.getByUsername.path, data.username] });
       queryClient.invalidateQueries({ queryKey: ['/api/profiles/batch'] });
     },
   });
@@ -153,9 +154,10 @@ export function useUpdateUsername() {
       }
       return api.profiles.updateUsername.responses[200].parse(await res.json());
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.profiles.me.path] });
       queryClient.invalidateQueries({ queryKey: [api.profiles.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.profiles.getByUsername.path, data.username] });
     },
   });
 }

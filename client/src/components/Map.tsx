@@ -38,11 +38,23 @@ const HighlightedPinkIcon = L.divIcon({
 function MapController({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   useEffect(() => {
+    const timeout = setTimeout(() => {
+      try {
+        map.invalidateSize();
+      } catch (err) {
+        console.error("Map invalidate error:", err);
+      }
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, [map]);
+
+  useEffect(() => {
     try {
       if (center && Array.isArray(center) && center.length === 2 && 
           typeof center[0] === 'number' && typeof center[1] === 'number' &&
           !isNaN(center[0]) && !isNaN(center[1])) {
         map.flyTo(center as L.LatLngExpression, zoom, { duration: 2 });
+        map.invalidateSize();
       }
     } catch (err) {
       console.error("Map flyTo error:", err);
@@ -157,7 +169,7 @@ export default function Map({ profiles, selectedId, hoveredProfileId, center = [
                     })()}
                   </div>
                   
-                  <Link href={`/profile/${profile.id}`}>
+                  <Link href={`/profile/${profile.username}`}>
                     <Button size="sm" className="w-full rounded-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
                       View Profile
                     </Button>
