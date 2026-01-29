@@ -363,7 +363,8 @@ export async function registerRoutes(
       const objectPath = `/profiles/${filename}`;
 
       // Return a local upload URL for development
-      const uploadURL = `${req.protocol}://${req.get('host')}/api/uploads/upload/${filename}`;
+      const proto = (req.get("x-forwarded-proto") || req.protocol).split(",")[0].trim();
+      const uploadURL = `${proto}://${req.get('host')}/api/uploads/upload/${filename}`;
 
       res.json({
         uploadURL,
