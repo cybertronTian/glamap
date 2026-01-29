@@ -137,7 +137,7 @@ export default function Map({ profiles, selectedId, hoveredProfileId, center = [
               <div className="flex flex-col">
                 <div className="h-10 bg-card relative" />
                 <div className="p-4 relative bg-card">
-                  <div className="rounded-full border-4 border-card bg-muted w-16 h-16 flex items-center justify-center text-xl font-display font-bold text-muted-foreground overflow-hidden mb-3">
+                  <div className="w-20 h-20 rounded-xl bg-muted flex items-center justify-center text-2xl font-display font-bold text-muted-foreground overflow-hidden mb-3">
                     {profile.profileImageUrl ? (
                       <img src={profile.profileImageUrl} alt={profile.username} className="w-full h-full object-cover" />
                     ) : (
