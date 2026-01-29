@@ -19,7 +19,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Users, UserCheck, MessageSquare, MapPin, Trash2, ShieldCheck, Loader2, Eye, Plus, Edit, Camera, X } from "lucide-react";
 import { Redirect } from "wouter";
 import { useState, useRef } from "react";
-import type { Profile } from "@shared/schema";
+import type { Profile, Service } from "@shared/schema";
 
 interface AdminStats {
   totalUsers: number;
@@ -54,6 +54,15 @@ interface LocationResult {
   };
 }
 
+interface ServiceFormState {
+  id?: number;
+  tempId?: string;
+  name: string;
+  description: string;
+  price: string;
+  duration: string;
+}
+
 export default function Admin() {
   const { isAuthenticated, isLoading: authLoading, getToken } = useAuth();
   const { data: myProfile, isLoading: profileLoading } = useMyProfile();
@@ -80,6 +89,10 @@ export default function Admin() {
   const [locationSelected, setLocationSelected] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [services, setServices] = useState<ServiceFormState[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [serviceSavingId, setServiceSavingId] = useState<string | number | null>(null);
+  const [serviceDeletingId, setServiceDeletingId] = useState<string | number | null>(null);
   
   const { uploadFile, isUploading } = useUpload({
     onSuccess: (response) => {
@@ -296,6 +309,126 @@ export default function Admin() {
     }
   };
 
+  const mapServiceToForm = (service: Service): ServiceFormState => ({
+    id: service.id,
+    name: service.name || "",
+    description: service.description || "",
+    price: service.price || "",
+    duration: service.duration ? String(service.duration) : "",
+  });
+
+  const loadServices = async (profileId: number) => {
+    setServicesLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/admin/profiles/${profileId}/services`, {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load services");
+      const data: Service[] = await res.json();
+      setServices(data.map(mapServiceToForm));
+    } catch (error: any) {
+      setServices([]);
+      toast({ title: "Error", description: error.message || "Failed to load services", variant: "destructive" });
+    } finally {
+      setServicesLoading(false);
+    }
+  };
+
+  const addServiceRow = () => {
+    setServices((prev) => [
+      ...prev,
+      {
+        tempId: `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name: "",
+        description: "",
+        price: "",
+        duration: "",
+      },
+    ]);
+  };
+
+  const updateServiceField = (key: number | string, field: keyof ServiceFormState, value: string) => {
+    setServices((prev) =>
+      prev.map((service) =>
+        (service.id === key || service.tempId === key) ? { ...service, [field]: value } : service
+      )
+    );
+  };
+
+  const saveService = async (service: ServiceFormState) => {
+    if (!editingProfile) return;
+    if (!service.name.trim()) {
+      toast({ title: "Service name required", variant: "destructive" });
+      return;
+    }
+    const saveKey = service.id ?? service.tempId ?? "new";
+    setServiceSavingId(saveKey);
+    try {
+      const token = await getToken();
+      const payload = {
+        name: service.name.trim(),
+        description: service.description.trim(),
+        price: service.price.trim(),
+        duration: service.duration.trim(),
+      };
+      const res = await fetch(
+        service.id ? `/api/admin/services/${service.id}` : `/api/admin/profiles/${editingProfile.id}/services`,
+        {
+          method: service.id ? "PUT" : "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to save service");
+      }
+      const saved: Service = await res.json();
+      setServices((prev) => {
+        const next = prev.map((item) =>
+          item.id === service.id || item.tempId === service.tempId ? mapServiceToForm(saved) : item
+        );
+        if (!service.id && !next.some((item) => item.id === saved.id)) {
+          return [...next, mapServiceToForm(saved)];
+        }
+        return next;
+      });
+      toast({ title: "Service saved" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to save service", variant: "destructive" });
+    } finally {
+      setServiceSavingId(null);
+    }
+  };
+
+  const deleteService = async (service: ServiceFormState) => {
+    const deleteKey = service.id ?? service.tempId ?? "new";
+    setServiceDeletingId(deleteKey);
+    try {
+      if (service.id) {
+        const token = await getToken();
+        const res = await fetch(`/api/admin/services/${service.id}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({}));
+          throw new Error(error.message || "Failed to delete service");
+        }
+      }
+      setServices((prev) => prev.filter((item) => item.id !== service.id && item.tempId !== service.tempId));
+      toast({ title: "Service removed" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to delete service", variant: "destructive" });
+    } finally {
+      setServiceDeletingId(null);
+    }
+  };
+
   const handleEdit = (profile: Profile) => {
     setEditingProfile(profile);
     setFormData({
@@ -311,6 +444,11 @@ export default function Admin() {
     setLocationSearch(profile.location || "");
     setLocationSelected(Boolean(profile.latitude && profile.longitude));
     setIsEditDialogOpen(true);
+    if (profile.role === "provider") {
+      loadServices(profile.id);
+    } else {
+      setServices([]);
+    }
   };
 
 
@@ -702,6 +840,70 @@ export default function Admin() {
                                 <SelectItem value="mobile">Mobile</SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label>Services</Label>
+                              <Button type="button" variant="outline" size="sm" onClick={addServiceRow}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Service
+                              </Button>
+                            </div>
+                            {servicesLoading ? (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Loading services...
+                              </div>
+                            ) : services.length === 0 ? (
+                              <div className="text-sm text-muted-foreground border border-dashed border-border rounded-lg p-4">
+                                No services yet. Add one to showcase this demo account.
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {services.map((service) => {
+                                  const key = service.id ?? service.tempId ?? "service";
+                                  const isSaving = serviceSavingId === key;
+                                  const isDeleting = serviceDeletingId === key;
+                                  return (
+                                    <div key={key} className="rounded-lg border border-border p-3 space-y-2">
+                                      <Input
+                                        placeholder="Service name"
+                                        value={service.name}
+                                        onChange={(e) => updateServiceField(key, "name", e.target.value)}
+                                      />
+                                      <Textarea
+                                        placeholder="Description"
+                                        rows={2}
+                                        value={service.description}
+                                        onChange={(e) => updateServiceField(key, "description", e.target.value)}
+                                      />
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <Input
+                                          placeholder="Price"
+                                          value={service.price}
+                                          onChange={(e) => updateServiceField(key, "price", e.target.value)}
+                                        />
+                                        <Input
+                                          placeholder="Duration (mins)"
+                                          type="number"
+                                          min="0"
+                                          value={service.duration}
+                                          onChange={(e) => updateServiceField(key, "duration", e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="flex justify-end gap-2">
+                                        <Button type="button" variant="ghost" size="sm" onClick={() => deleteService(service)} disabled={isDeleting || isSaving}>
+                                          {isDeleting ? "Removing..." : "Remove"}
+                                        </Button>
+                                        <Button type="button" size="sm" onClick={() => saveService(service)} disabled={isSaving || isDeleting}>
+                                          {isSaving ? "Saving..." : "Save"}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         </>
                       )}

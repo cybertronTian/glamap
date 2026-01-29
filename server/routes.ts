@@ -421,6 +421,82 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  app.get("/api/admin/profiles/:id/services", isAuthenticated, isAdmin, async (req, res) => {
+    const id = parseInt(req.params.id as string);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid profile ID" });
+
+    const profile = await storage.getProfile(id);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const providerServices = await storage.getServicesByProvider(profile.id);
+    res.json(providerServices);
+  });
+
+  app.post("/api/admin/profiles/:id/services", isAuthenticated, isAdmin, async (req, res) => {
+    const id = parseInt(req.params.id as string);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid profile ID" });
+
+    const profile = await storage.getProfile(id);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    if (profile.role !== "provider") {
+      return res.status(400).json({ message: "Services can only be added to providers" });
+    }
+
+    const { name, description, price, duration } = req.body;
+    if (!name) return res.status(400).json({ message: "Service name is required" });
+
+    const existing = await storage.getServiceByNameAndProvider(name, profile.id);
+    if (existing) {
+      return res.status(409).json({ message: "A service with this name already exists" });
+    }
+
+    const service = await storage.createService({
+      providerId: profile.id,
+      name,
+      description: description || null,
+      price: price || null,
+      duration: duration !== undefined && duration !== null && duration !== "" ? Number(duration) : null,
+    });
+
+    res.status(201).json(service);
+  });
+
+  app.put("/api/admin/services/:serviceId", isAuthenticated, isAdmin, async (req, res) => {
+    const serviceId = parseInt(req.params.serviceId as string);
+    if (isNaN(serviceId)) return res.status(400).json({ message: "Invalid service ID" });
+
+    const service = await storage.getService(serviceId);
+    if (!service) return res.status(404).json({ message: "Service not found" });
+
+    const { name, description, price, duration } = req.body;
+    if (name && name !== service.name) {
+      const existing = await storage.getServiceByNameAndProvider(name, service.providerId);
+      if (existing && existing.id !== service.id) {
+        return res.status(409).json({ message: "A service with this name already exists" });
+      }
+    }
+
+    const updated = await storage.updateService(serviceId, {
+      name: name ?? service.name,
+      description: description !== undefined ? description : service.description,
+      price: price !== undefined ? price : service.price,
+      duration: duration !== undefined ? (duration === "" || duration === null ? null : Number(duration)) : service.duration,
+    });
+
+    res.json(updated);
+  });
+
+  app.delete("/api/admin/services/:serviceId", isAuthenticated, isAdmin, async (req, res) => {
+    const serviceId = parseInt(req.params.serviceId as string);
+    if (isNaN(serviceId)) return res.status(400).json({ message: "Invalid service ID" });
+
+    const service = await storage.getService(serviceId);
+    if (!service) return res.status(404).json({ message: "Service not found" });
+
+    await storage.deleteService(serviceId);
+    res.status(204).send();
+  });
+
   // Upload endpoint for profile images
   app.post("/api/uploads/request-url", isAuthenticated, async (req, res) => {
     try {

@@ -30,8 +30,10 @@ export interface IStorage {
 
   // Services
   getServicesByProvider(providerId: number): Promise<Service[]>;
+  getService(id: number): Promise<Service | undefined>;
   getServiceByNameAndProvider(name: string, providerId: number): Promise<Service | undefined>;
   createService(service: InsertService & { providerId: number }): Promise<Service>;
+  updateService(id: number, updates: Partial<InsertService>): Promise<Service>;
   deleteService(id: number): Promise<void>;
 
   // Reviews
@@ -154,6 +156,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(services).where(eq(services.providerId, providerId));
   }
 
+  async getService(id: number): Promise<Service | undefined> {
+    const [service] = await db.select().from(services).where(eq(services.id, id));
+    return service;
+  }
+
   async getServiceByNameAndProvider(name: string, providerId: number): Promise<Service | undefined> {
     const [service] = await db.select().from(services).where(and(eq(services.name, name), eq(services.providerId, providerId)));
     return service;
@@ -162,6 +169,11 @@ export class DatabaseStorage implements IStorage {
   async createService(service: InsertService & { providerId: number }): Promise<Service> {
     const [newService] = await db.insert(services).values(service).returning();
     return newService;
+  }
+
+  async updateService(id: number, updates: Partial<InsertService>): Promise<Service> {
+    const [updated] = await db.update(services).set(updates).where(eq(services.id, id)).returning();
+    return updated;
   }
 
   async deleteService(id: number): Promise<void> {
